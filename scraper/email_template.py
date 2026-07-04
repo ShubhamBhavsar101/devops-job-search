@@ -1,6 +1,7 @@
 import logging
 import smtplib
 import os
+from collections import OrderedDict
 from datetime import datetime
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -13,26 +14,41 @@ from jinja2 import Environment, FileSystemLoader
 
 import config
 from scraper.base import JobDict
-from scraper.ranking import separate_by_location
 
 logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 
+SOURCE_LABELS = {
+    "naukri": "Naukri",
+    "linkedin": "LinkedIn",
+    "amazon": "Individual Company Websites",
+    "ashby": "Individual Company Websites",
+}
+
+
+def _group_by_source(jobs: List[JobDict]) -> OrderedDict:
+    groups = OrderedDict(
+        [("Naukri", []), ("LinkedIn", []), ("Individual Company Websites", [])]
+    )
+    for job in jobs:
+        label = SOURCE_LABELS.get(job.get("source", ""), "Other")
+        if label not in groups:
+            groups[label] = []
+        groups[label].append(job)
+    return groups
+
 
 def render_html_report(jobs: List[JobDict], date_str: str) -> str:
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("report.html")
-    pune_jobs, remote_jobs, other_jobs = separate_by_location(jobs)
+    groups = _group_by_source(jobs)
+    source_stats = {label: len(jobs) for label, jobs in groups.items()}
     html = template.render(
         date=date_str,
         total_jobs=len(jobs),
-        pune_count=len(pune_jobs),
-        remote_count=len(remote_jobs),
-        other_count=len(other_jobs),
-        pune_jobs=pune_jobs,
-        remote_jobs=remote_jobs,
-        other_jobs=other_jobs,
+        groups=groups,
+        source_stats=source_stats,
     )
     logger.info("HTML report rendered: %d total jobs", len(jobs))
     return html
