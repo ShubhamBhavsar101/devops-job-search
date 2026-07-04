@@ -74,4 +74,11 @@ USER_AGENTS: List[str] = [
 ]
 
 MAX_JOBS_PER_SOURCE: int = 50
-LOOKBACK_HOURS: int = int(os.environ.get("JOB_FRESHNESS_HOURS", "24"))
+_FRESHNESS_DAYS = os.environ.get("JOB_FRESHNESS_DAYS")
+_FRESHNESS_HOURS = os.environ.get("JOB_FRESHNESS_HOURS")
+if _FRESHNESS_DAYS:
+    LOOKBACK_HOURS: int = int(_FRESHNESS_DAYS) * 24
+elif _FRESHNESS_HOURS:
+    LOOKBACK_HOURS: int = int(_FRESHNESS_HOURS)
+else:
+    LOOKBACK_HOURS: int = 24
