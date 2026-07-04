@@ -27,15 +27,32 @@ SOURCE_LABELS = {
 }
 
 
+def _city_bucket(location: str) -> str:
+    loc = (location or "").lower()
+    if "pune" in loc:
+        return "Pune"
+    if any(kw in loc for kw in ("remote", "work from home", "wfh", "home office")):
+        return "Remote"
+    return "Other"
+
+
 def _group_by_source(jobs: List[JobDict]) -> OrderedDict:
     groups = OrderedDict(
-        [("Naukri", []), ("LinkedIn", []), ("Individual Company Websites", [])]
+        [
+            ("Naukri", OrderedDict()),
+            ("LinkedIn", OrderedDict()),
+            ("Individual Company Websites", OrderedDict()),
+        ]
     )
     for job in jobs:
-        label = SOURCE_LABELS.get(job.get("source", ""), "Other")
-        if label not in groups:
-            groups[label] = []
-        groups[label].append(job)
+        source_label = SOURCE_LABELS.get(job.get("source", ""), "Other")
+        if source_label not in groups:
+            groups[source_label] = OrderedDict()
+        city = _city_bucket(job.get("location", ""))
+        city_order = ["Pune", "Remote", "Other"]
+        if city not in groups[source_label]:
+            groups[source_label][city] = []
+        groups[source_label][city].append(job)
     return groups
 
 
@@ -43,12 +60,24 @@ def render_html_report(jobs: List[JobDict], date_str: str) -> str:
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("report.html")
     groups = _group_by_source(jobs)
-    source_stats = {label: len(jobs) for label, jobs in groups.items()}
+    source_stats = OrderedDict()
+    total = 0
+    for src_label, city_groups in groups.items():
+        src_total = sum(len(j) for j in city_groups.values())
+        if src_total:
+            source_stats[src_label] = src_total
+            total += src_total
+    source_totals = {
+        src: sum(len(j) for j in city_groups.values())
+        for src, city_groups in groups.items()
+    }
     html = template.render(
         date=date_str,
-        total_jobs=len(jobs),
+        total_jobs=total,
         groups=groups,
         source_stats=source_stats,
+        source_totals=source_totals,
+        CITY_ORDER=["Pune", "Remote", "Other"],
     )
     logger.info("HTML report rendered: %d total jobs", len(jobs))
     return html
