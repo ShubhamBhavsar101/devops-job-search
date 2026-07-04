@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily DevOps Job Report</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f4f6f9;
+    margin: 0;
+    padding: 0;
+    color: #1a1a2e;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 32px 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .header h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .header .date {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 100px;
+  }
+  .stat .num {
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+  }
+  .stat .label {
+    font-size: 12px;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    color: #333;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 8px;
+  }
+  .section h2 .count {
+    color: #667eea;
+    font-weight: 400;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 8px;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 600;
+    color: #555;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: middle;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  .company {
+    font-weight: 600;
+    color: #2d3748;
+  }
+  .role {
+    color: #4a5568;
+  }
+  .location {
+    color: #718096;
+    font-size: 12px;
+  }
+  .posted {
+    color: #718096;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .apply-btn {
+    display: inline-block;
+    background: #667eea;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .apply-btn:hover {
+    background: #5a67d8;
+  }
+  .empty {
+    color: #a0aec0;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+  }
+  .footer {
+    text-align: center;
+    color: #a0aec0;
+    font-size: 12px;
+    padding: 16px;
+  }
+  @media (max-width: 600px) {
+    .stats { gap: 12px; }
+    .stat { min-width: 80px; padding: 8px 12px; }
+    .stat .num { font-size: 20px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px 4px; }
+    .apply-btn { padding: 4px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Daily DevOps Job Report</h1>
+    <div class="date">{{ date }}</div>
+    <div class="stats">
+      <div class="stat">
+        <span class="num">{{ total_jobs }}</span>
+        <span class="label">Total Jobs</span>
+      </div>
+      <div class="stat">
+        <span class="num">{{ pune_count }}</span>
+        <span class="label">Pune</span>
+      </div>
+      <div class="stat">
+        <span class="num">{{ remote_count }}</span>
+        <span class="label">Remote</span>
+      </div>
+      <div class="stat">
+        <span class="num">{{ other_count }}</span>
+        <span class="label">Other</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Pune Jobs <span class="count">({{ pune_count }})</span></h2>
+    {% if pune_jobs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Posted</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in pune_jobs %}
+        <tr>
+          <td class="company">{{ job.company }}</td>
+          <td class="role">{{ job.title }}</td>
+          <td class="location">{{ job.location }}</td>
+          <td class="posted">
+            {% if job.posted_date %}
+              {{ job.posted_date.strftime('%b %d') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if job.apply_url %}
+            <a href="{{ job.apply_url }}" target="_blank" class="apply-btn">Apply Now</a>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No Pune jobs found today.</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>Remote Jobs <span class="count">({{ remote_count }})</span></h2>
+    {% if remote_jobs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Posted</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in remote_jobs %}
+        <tr>
+          <td class="company">{{ job.company }}</td>
+          <td class="role">{{ job.title }}</td>
+          <td class="location">{{ job.location }}</td>
+          <td class="posted">
+            {% if job.posted_date %}
+              {{ job.posted_date.strftime('%b %d') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if job.apply_url %}
+            <a href="{{ job.apply_url }}" target="_blank" class="apply-btn">Apply Now</a>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No Remote jobs found today.</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>Other Jobs <span class="count">({{ other_count }})</span></h2>
+    {% if other_jobs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Posted</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in other_jobs %}
+        <tr>
+          <td class="company">{{ job.company }}</td>
+          <td class="role">{{ job.title }}</td>
+          <td class="location">{{ job.location }}</td>
+          <td class="posted">
+            {% if job.posted_date %}
+              {{ job.posted_date.strftime('%b %d') }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if job.apply_url %}
+            <a href="{{ job.apply_url }}" target="_blank" class="apply-btn">Apply Now</a>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No other jobs found today.</div>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    Generated by Daily DevOps Job Finder &mdash; {{ date }}
+  </div>
+</div>
+</body>
+</html>
