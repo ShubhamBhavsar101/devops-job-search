@@ -8,18 +8,10 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import config
+from scraper.amazon import AmazonScraper
 from scraper.ashby import AshbyScraper
-from scraper.company_sites import (
-    AmazonCareersScraper,
-    GoogleCareersScraper,
-    MicrosoftCareersScraper,
-    OracleCareersScraper,
-)
 from scraper.email_template import render_html_report, send_email
 from scraper.exporter import jobs_to_csv
-from scraper.greenhouse import GreenhouseScraper
-from scraper.indeed import IndeedScraper
-from scraper.lever import LeverScraper
 from scraper.linkedin import LinkedInScraper
 from scraper.naukri import NaukriScraper
 from scraper.ranking import deduplicate, rank_jobs
@@ -55,20 +47,14 @@ def main():
     today = datetime.now(timezone.utc).strftime("%B %d, %Y")
 
     scrapers = [
-        IndeedScraper(),
-        GreenhouseScraper(),
-        LeverScraper(),
         AshbyScraper(),
+        AmazonScraper(),
         NaukriScraper(),
         LinkedInScraper(),
-        GoogleCareersScraper(),
-        MicrosoftCareersScraper(),
-        AmazonCareersScraper(),
-        OracleCareersScraper(),
     ]
 
     all_jobs = []
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         future_map = {executor.submit(run_scraper, s): s for s in scrapers}
         for future in as_completed(future_map):
             scraper_name = future_map[future].source_name
@@ -92,11 +78,6 @@ def main():
     jobs_to_csv(all_jobs, csv_path)
 
     html_body = render_html_report(all_jobs, today)
-
-    html_path = os.path.join(output_dir, config.HTML_FILENAME.format(date=date_str))
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(html_body)
-    logger.info("HTML report saved to %s", html_path)
 
     email_sent = send_email(
         html_body=html_body,

@@ -4,31 +4,26 @@ Automatically searches for DevOps, Cloud, SRE, Platform, and Infrastructure engi
 
 ## How It Works
 
-1. Runs daily at **9:00 AM IST** via GitHub Actions (`schedule` trigger)
-2. Searches 13+ job sources using public APIs, RSS feeds, and HTML parsing
+1. Runs daily at **9:00 AM IST** via GitHub Actions
+2. Searches 4 job sources for keywords matching DevOps roles
 3. Filters jobs posted within the last 24 hours
 4. Deduplicates identical listings across sources
 5. Ranks by location priority + keyword relevance
 6. Generates an HTML email report (Pune / Remote / Other sections)
-7. Attaches a CSV with all job details
-8. Uploads CSV, HTML, and logs as workflow artifacts
+7. Attaches CSV with all job details
 
 ## Job Sources
 
 | Source | Method | Reliability |
 |---|---|---|
-| Indeed | RSS feed | High |
-| Greenhouse (150+ companies) | Public API | High |
-| Lever (50+ companies) | Public API | High |
-| Ashby | Public API | High |
-| Naukri | HTML + JSON | Medium |
-| LinkedIn | Guest API | Low (rate-limited from GHA) |
-| Google Careers | JSON API | Medium |
-| Microsoft Careers | JSON API | Medium |
-| Amazon Careers | JSON API | Medium |
-| Oracle Careers | Workday API | Medium |
+| **Amazon Jobs** | JSON API | ✅ Working |
+| **Ashby** (Anthropic, Linear, Raycast) | Public API | ✅ Working |
+| **Naukri** | HTML parsing | ⚠️ Best-effort (anti-bot) |
+| **LinkedIn** | Guest API | ⚠️ Best-effort (rate-limited) |
 
-Adding a new source: create a class extending `BaseScraper` in `scraper/` and register it in `scraper/main.py`.
+### About Naukri & LinkedIn
+
+Naukri and LinkedIn employ aggressive anti-bot measures (CAPTCHAs, rate-limiting) that block server-side scrapers from GitHub Actions datacenter IPs. The scraper will attempt them every run and gracefully move on — they may produce results from residential IPs if run locally.
 
 ## Search Keywords
 
@@ -49,8 +44,8 @@ Keyword bonuses: AWS, Kubernetes (+20), Terraform, Docker, CI/CD, GitHub Actions
 ### 1. Fork / Clone
 
 ```bash
-git clone <your-repo-url>
-cd devops-job-finder
+git clone https://github.com/ShubhamBhavsar101/devops-job-search
+cd devops-job-search
 ```
 
 ### 2. Configure GitHub Secrets
@@ -60,24 +55,19 @@ In your repository: **Settings → Secrets and variables → Actions → New rep
 | Secret | Value |
 |---|---|
 | `GMAIL_USERNAME` | Your Gmail address (e.g., `you@gmail.com`) |
-| `GMAIL_APP_PASSWORD` | Gmail App Password (see below) |
+| `GMAIL_APP_PASSWORD` | Gmail App Password (16 chars) |
 | `RECIPIENT_EMAIL` | Where to send the report |
 
 ### 3. Generate Gmail App Password
 
-1. Go to https://myaccount.google.com/security
-2. Enable **2-Step Verification** if not already enabled
-3. Go to **App passwords** (search in Google Account settings)
-4. Select **Mail** and your device, then **Generate**
-5. Copy the 16-character password — use this as `GMAIL_APP_PASSWORD`
+1. Enable **2-Step Verification** at https://myaccount.google.com/security
+2. Go to https://myaccount.google.com/apppasswords
+3. Select **Mail** → **Other** → name it `devops-job-finder` → **Generate**
+4. Copy the 16-character password
 
-### 4. Enable the Workflow
+### 4. Manual Test Run
 
-The workflow is disabled by default on forks. Go to **Actions** tab and enable it.
-
-### 5. Manual Test Run
-
-Go to **Actions → Daily DevOps Job Search → Run workflow** (dropdown) to trigger an immediate run.
+Go to **Actions → Daily DevOps Job Search → Run workflow** to trigger immediately.
 
 ## Local Development
 
@@ -85,48 +75,32 @@ Go to **Actions → Daily DevOps Job Search → Run workflow** (dropdown) to tri
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# Test without email:
-python scraper/main.py
-```
-
-Set environment variables for email:
-```bash
 export GMAIL_USERNAME="your@gmail.com"
 export GMAIL_APP_PASSWORD="your-app-password"
 export RECIPIENT_EMAIL="you@example.com"
+python scraper/main.py
 ```
 
 ## Output
 
-- **Email**: Beautiful HTML report with tables per location section
-- **CSV**: Full job data attached to the email
-- **Artifacts**: CSV + HTML + logs available in GitHub Actions run summary
-
-### Sample CSV Columns
-
-Company, Role, Location, Source, Posted, Apply URL, Score
+- **Email**: HTML report with location-section tables + CSV attachment
+- **Artifacts**: CSV available in GitHub Actions run summary
 
 ## Project Structure
 
 ```
-.
 ├── .github/workflows/daily-job-search.yml
 ├── scraper/
-│   ├── base.py              # Abstract base scraper
-│   ├── indeed.py            # Indeed RSS feed
-│   ├── greenhouse.py        # Greenhouse API (150+ companies)
-│   ├── lever.py             # Lever API
-│   ├── ashby.py             # Ashby API
-│   ├── naukri.py            # Naukri.com
-│   ├── linkedin.py          # LinkedIn guest API
-│   ├── company_sites.py     # Google, Microsoft, Amazon, Oracle
-│   ├── ranking.py           # Scoring + dedup
-│   ├── exporter.py          # CSV generation
-│   ├── email_template.py    # HTML rendering + SMTP
+│   ├── base.py              # Abstract base scraper (retry, timeout, normalize)
+│   ├── ashby.py             # Ashby public API
+│   ├── amazon.py            # Amazon Jobs JSON API
+│   ├── naukri.py            # Naukri (best-effort)
+│   ├── linkedin.py          # LinkedIn guest API (best-effort)
+│   ├── ranking.py           # Scoring + dedup algorithm
+│   ├── exporter.py          # CSV export
+│   ├── email_template.py    # HTML rendering + SMTP send
 │   └── main.py              # Orchestrator
-├── templates/
-│   └── report.html          # Jinja2 HTML email template
+├── templates/report.html    # Jinja2 HTML email template
 ├── config.py                # Central configuration
 ├── requirements.txt
 └── README.md
@@ -135,15 +109,8 @@ Company, Role, Location, Source, Posted, Apply URL, Score
 ## Adding New Sources
 
 1. Create `scraper/mysource.py` with a class extending `BaseScraper`
-2. Implement the `scrape()` method returning `List[JobDict]`
-3. Add the scraper to the list in `scraper/main.py`
-4. Optionally add API keys / config to `config.py`
-
-## Notes
-
-- LinkedIn scraping from GitHub Actions datacenter IPs is unreliable due to rate limiting — it will try and gracefully fail
-- Naukri uses HTML parsing which may break if their markup changes
-- Greenhouse covers 150+ companies through their shared ATS (Datadog, HashiCorp, Snowflake, CrowdStrike, etc.)
+2. Implement `scrape()` returning `List[JobDict]`
+3. Add it to the list in `scraper/main.py`
 
 ## License
 

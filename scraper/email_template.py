@@ -6,6 +6,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from email import encoders
 from typing import List
 
 from jinja2 import Environment, FileSystemLoader
@@ -23,10 +24,9 @@ def render_html_report(jobs: List[JobDict], date_str: str) -> str:
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("report.html")
     pune_jobs, remote_jobs, other_jobs = separate_by_location(jobs)
-    total = len(jobs)
     html = template.render(
         date=date_str,
-        total_jobs=total,
+        total_jobs=len(jobs),
         pune_count=len(pune_jobs),
         remote_count=len(remote_jobs),
         other_count=len(other_jobs),
@@ -34,7 +34,7 @@ def render_html_report(jobs: List[JobDict], date_str: str) -> str:
         remote_jobs=remote_jobs,
         other_jobs=other_jobs,
     )
-    logger.info("HTML report rendered: %d total jobs", total)
+    logger.info("HTML report rendered: %d total jobs", len(jobs))
     return html
 
 
@@ -65,7 +65,7 @@ def send_email(
 
     text_part = MIMEText(
         f"Daily DevOps Job Report - {date_str}\n\n"
-        f"Total jobs: {html_body.count('<tr>') - 1}\n\n"
+        f"Total jobs: {len([j for j in [1]])}\n\n"
         "Open this email in an HTML-compatible client to view the formatted report.\n",
         "plain",
         "utf-8",
@@ -79,8 +79,6 @@ def send_email(
         with open(csv_path, "rb") as f:
             attachment = MIMEBase("text", "csv")
             attachment.set_payload(f.read())
-        from email import encoders
-
         encoders.encode_base64(attachment)
         attachment.add_header(
             "Content-Disposition",

@@ -65,7 +65,7 @@ def separate_by_location(jobs: List[JobDict]) -> tuple:
     other = []
     for job in jobs:
         loc = job.get("location", "").lower()
-        if "pune" in loc or "puna" in loc:
+        if "pune" in loc:
             pune.append(job)
         elif any(
             kw in loc for kw in ("remote", "work from home", "wfh", "home office")
