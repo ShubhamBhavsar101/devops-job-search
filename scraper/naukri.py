@@ -53,6 +53,18 @@ def _extract_city(cityfield: str) -> str:
     return "India"
 
 
+def _hours_to_job_age(hours: int) -> int:
+    if hours <= 24:
+        return 1
+    if hours <= 72:
+        return 3
+    if hours <= 168:
+        return 7
+    if hours <= 360:
+        return 15
+    return 30
+
+
 class NaukriScraper(BaseScraper):
     def __init__(self):
         super().__init__("naukri")
@@ -81,6 +93,7 @@ class NaukriScraper(BaseScraper):
             "location": location,
             "pageNo": 1,
             "noOfResults": config.MAX_JOBS_PER_SOURCE,
+            "jobAge": _hours_to_job_age(config.LOOKBACK_HOURS),
         }
 
         headers = {
