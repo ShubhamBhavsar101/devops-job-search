@@ -56,6 +56,14 @@ class BaseScraper(ABC):
                     )
                     time.sleep(wait)
                     continue
+                if 400 <= resp.status_code < 500:
+                    logger.warning(
+                        "%s: client error %d on %s, skipping retries",
+                        self.source_name,
+                        resp.status_code,
+                        url,
+                    )
+                    return None
                 resp.raise_for_status()
                 return resp
             except requests.RequestException as e:

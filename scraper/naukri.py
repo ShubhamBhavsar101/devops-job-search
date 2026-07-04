@@ -1,13 +1,13 @@
+import base64
 import logging
-import math
-import random
 import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from urllib.parse import quote
 
-from bs4 import BeautifulSoup
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
+from curl_cffi import requests as curl_requests
 
 import config
 from config import SEARCH_KEYWORDS, LOCATIONS
@@ -15,25 +15,48 @@ from scraper.base import BaseScraper, JobDict
 
 logger = logging.getLogger(__name__)
 
+PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALrlQ+djR0RjJwBF1xuisHmdFv334MIm
+K6LgzJhmLhN7B5yuEyaKoasgXQk3+OQglsOaBxEJ0j5PcTL3nbOvt80CAwEAAQ==
+-----END PUBLIC KEY-----"""
+
+
+def _generate_nkparam(page_type: str = "srp") -> str:
+    key = RSA.import_key(PUBLIC_KEY)
+    cipher = PKCS1_v1_5.new(key)
+    ts = int(time.time() * 1000)
+    plaintext = f"v0|{ts}|121_{page_type}"
+    encrypted = cipher.encrypt(plaintext.encode("utf-8"))
+    return base64.b64encode(encrypted).decode("utf-8")
+
+
+def _extract_city(cityfield: str) -> str:
+    if not cityfield:
+        return "India"
+    lower = cityfield.lower()
+    for location in config.LOCATIONS:
+        loc_short = location.split(",")[0].strip()
+        if loc_short.lower() in lower:
+            return loc_short
+    if "remote" in lower or "work from home" in lower or "wfh" in lower:
+        return "Remote"
+    parts = re.split(r"[,/]", cityfield)
+    for part in parts:
+        part = part.strip()
+        if (
+            part
+            and len(part) > 2
+            and part != "india"
+            and not part.startswith("anywhere")
+        ):
+            return part.title()
+    return "India"
+
 
 class NaukriScraper(BaseScraper):
     def __init__(self):
         super().__init__("naukri")
-        self._init_session()
-
-    def _init_session(self):
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.naukri.com/",
-        }
-        self.session.headers.update(headers)
-        self.session.get(
-            "https://www.naukri.com/",
-            timeout=config.REQUEST_TIMEOUT,
-        )
+        self._curl_session = curl_requests.Session(impersonate="chrome")
 
     def scrape(self) -> List[JobDict]:
         jobs: List[JobDict] = []
@@ -43,110 +66,109 @@ class NaukriScraper(BaseScraper):
             for location in LOCATIONS:
                 loc_short = location.split(",")[0].strip()
                 logger.info("Naukri: searching '%s' in '%s'", keyword, loc_short)
-                found = self._search_page(keyword, loc_short, seen_urls, page=1)
+                found = self._search(keyword, loc_short, seen_urls)
                 jobs.extend(found)
-                time.sleep(random.uniform(0.5, 1.0))
+                time.sleep(0.5)
 
         logger.info("Naukri: found %d jobs total", len(jobs))
         return jobs
 
-    def _search_page(
-        self, keyword: str, location: str, seen_urls: set, page: int = 1
-    ) -> List[JobDict]:
+    def _search(self, keyword: str, location: str, seen_urls: set) -> List[JobDict]:
         found: List[JobDict] = []
-        kw_encoded = quote(keyword)
-        loc_encoded = quote(f"{location}, India")
-        url = (
-            f"https://www.naukri.com/{kw_encoded}-jobs-in-{loc_encoded}"
-            f"?k={kw_encoded}&l={loc_encoded}"
-            f"&ctcFilter=0&fromAge=1"
-        )
-        if page > 1:
-            url += f"&pageNo={page}"
 
-        resp = self.fetch(url)
-        if resp is None:
+        params = {
+            "keyword": keyword,
+            "location": location,
+            "pageNo": 1,
+            "noOfResults": config.MAX_JOBS_PER_SOURCE,
+        }
+
+        headers = {
+            "accept": "application/json",
+            "appid": "109",
+            "systemid": "Naukri",
+            "nkparam": _generate_nkparam("srp"),
+        }
+
+        try:
+            resp = self._curl_session.get(
+                "https://www.naukri.com/jobapi/v1/search",
+                params=params,
+                headers=headers,
+                timeout=config.REQUEST_TIMEOUT,
+            )
+        except Exception as e:
+            logger.warning(
+                "Naukri: request failed for '%s' in '%s': %s", keyword, location, e
+            )
             return found
 
-        soup = BeautifulSoup(resp.text, "lxml")
-        job_cards = (
-            soup.find_all("div", class_=re.compile(r"jobTuple", re.I))
-            or soup.find_all("article", class_=re.compile(r"job", re.I))
-            or soup.find_all("div", class_=re.compile(r"cust-job-tuple", re.I))
-        )
+        if resp.status_code != 200:
+            logger.warning(
+                "Naukri: %d for '%s' in '%s': %s",
+                resp.status_code,
+                keyword,
+                location,
+                resp.text[:200],
+            )
+            return found
 
-        if not job_cards:
-            alt_data = self._extract_next_data(soup)
-            if alt_data:
-                return self._parse_next_data(alt_data, seen_urls)
+        try:
+            data = resp.json()
+        except Exception as e:
+            logger.error("Naukri: JSON parse error: %s", e)
+            return found
 
-        for card in job_cards:
-            job = self._parse_card(card, keyword)
-            if job and job["apply_url"] not in seen_urls:
-                seen_urls.add(job["apply_url"])
-                found.append(job)
+        for job in data.get("list", []):
+            title = job.get("post") or ""
+            if not title or not self._matches_keywords(title):
+                continue
+
+            company = job.get("companyName") or ""
+            apply_url = job.get("urlStr") or ""
+            if not apply_url:
+                continue
+            if apply_url in seen_urls:
+                continue
+            seen_urls.add(apply_url)
+
+            location_raw = _extract_city(job.get("cityfield") or "")
+
+            description = job.get("jobDesc") or ""
+            if job.get("keywords"):
+                description = f"{description}\nSkills: {job['keywords']}"
+
+            posted_raw = job.get("addDate") or ""
+            posted = self._parse_posted(posted_raw)
+
+            found.append(
+                self.normalize(
+                    title=title,
+                    company=company,
+                    location=location_raw,
+                    apply_url=apply_url,
+                    posted_date=posted,
+                    description=description,
+                )
+            )
 
         return found
 
-    def _parse_card(self, card, keyword: str) -> Optional[JobDict]:
-        try:
-            title_el = card.find("a", class_=re.compile(r"title", re.I)) or card.find(
-                "a", class_=re.compile(r"jobTitle", re.I)
-            )
-            title = title_el.get_text(strip=True) if title_el else ""
-            if not title or not self._matches_keywords(title):
-                return None
+    def _matches_keywords(self, title: str) -> bool:
+        t = title.lower()
+        for kw in SEARCH_KEYWORDS:
+            if kw.lower() in t:
+                return True
+        return False
 
-            apply_url = title_el.get("href", "") if title_el else ""
-            if apply_url and not apply_url.startswith("http"):
-                apply_url = "https://www.naukri.com" + apply_url
-
-            company_el = (
-                card.find("a", class_=re.compile(r"subTitle", re.I))
-                or card.find("a", class_=re.compile(r"company", re.I))
-                or card.find("a", class_=re.compile(r"comp-name", re.I))
-                or card.find("span", class_=re.compile(r"comp-name", re.I))
-            )
-            company = company_el.get_text(strip=True) if company_el else ""
-
-            loc_el = (
-                card.find("span", class_=re.compile(r"loc", re.I))
-                or card.find("li", class_=re.compile(r"location", re.I))
-                or card.find("span", class_=re.compile(r"location", re.I))
-            )
-            location = loc_el.get_text(strip=True) if loc_el else "India"
-
-            desc_el = card.find(
-                "div", class_=re.compile(r"job-desc", re.I)
-            ) or card.find("span", class_=re.compile(r"desc", re.I))
-            description = desc_el.get_text(strip=True)[:500] if desc_el else ""
-
-            posted = self._parse_posted_date(card)
-            return self.normalize(
-                title=title,
-                company=company,
-                location=location,
-                apply_url=apply_url,
-                posted_date=posted,
-                description=description,
-            )
-        except Exception as e:
-            logger.warning("Naukri: error parsing card: %s", e)
+    def _parse_posted(self, text: str) -> Optional[datetime]:
+        if not text:
             return None
-
-    def _parse_posted_date(self, card) -> Optional[datetime]:
-        for cls_pattern in ["posted", "time", "date", "ago", "day"]:
-            el = card.find("span", class_=re.compile(cls_pattern, re.I))
-            if el:
-                text = el.get_text(strip=True)
-                return self._parse_relative(text)
-        return None
-
-    def _parse_relative(self, text: str) -> Optional[datetime]:
         text = text.lower().strip()
         now = datetime.now(timezone.utc)
+
         m = re.search(
-            r"(\d+)\s*(min|minute|minutes|hour|hours|day|days|week|weeks|month|months)\s*ago",
+            r"(\d+)\s*(day|days|hour|hours|min|mins|minute|minutes|week|weeks|month|months)\s*ago",
             text,
         )
         if m:
@@ -165,68 +187,18 @@ class NaukriScraper(BaseScraper):
         if "today" in text:
             return now - timedelta(hours=6)
         if "just now" in text or "moments" in text:
-            return now - timedelta(minutes=10)
+            return now - timedelta(minutes=5)
         if "yesterday" in text:
             return now - timedelta(days=1)
-        return None
 
-    def _matches_keywords(self, title: str) -> bool:
-        t = title.lower()
-        for kw in SEARCH_KEYWORDS:
-            if kw.lower() in t:
-                return True
-        return False
-
-    def _extract_next_data(self, soup) -> Optional[dict]:
-        for script in soup.find_all("script"):
-            if script.get("id") == "__NEXT_DATA__" or "__NEXT_DATA__" in (
-                script.get("id") or ""
-            ):
-                try:
-                    import json
-
-                    return json.loads(script.string)
-                except Exception:
-                    pass
-        return None
-
-    def _parse_next_data(self, data: dict, seen_urls: set) -> List[JobDict]:
-        found = []
         try:
-            props = data.get("props", {}).get("pageProps", {})
-            results = props.get("results", []) or props.get("searchResults", []) or []
-            for item in results:
-                title = item.get("title", "") or item.get("jobTitle", "")
-                if not title or not self._matches_keywords(title):
-                    continue
-                apply_url = (
-                    item.get("url", "")
-                    or item.get("applyUrl", "")
-                    or item.get("jdURL", "")
-                )
-                if apply_url in seen_urls:
-                    continue
-                company = item.get("company", "") or item.get("companyName", "")
-                location = item.get("location", "") or item.get("place", "") or "India"
-                description = item.get("description", "") or ""
-                posted = None
-                ts = item.get("createdDate", None) or item.get("postedOn", None)
-                if ts:
-                    try:
-                        posted = datetime.fromtimestamp(ts / 1000)
-                    except (ValueError, TypeError, OverflowError):
-                        pass
-                seen_urls.add(apply_url)
-                found.append(
-                    self.normalize(
-                        title=title,
-                        company=company,
-                        location=location,
-                        apply_url=apply_url,
-                        posted_date=posted,
-                        description=description,
-                    )
-                )
-        except Exception as e:
-            logger.warning("Naukri: error parsing __NEXT_DATA__: %s", e)
-        return found
+            parsed = datetime.strptime(text, "%d %b")
+            parsed = parsed.replace(year=now.year, tzinfo=timezone.utc)
+            days_ago = (now - parsed).days
+            if days_ago > 0:
+                return now - timedelta(days=days_ago)
+            return now - timedelta(hours=6)
+        except (ValueError, TypeError):
+            pass
+
+        return None

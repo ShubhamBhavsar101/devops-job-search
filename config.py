@@ -3,18 +3,9 @@ from typing import Dict, List
 
 SEARCH_KEYWORDS: List[str] = [
     "DevOps Engineer",
-    "AWS Engineer",
-    "AWS Cloud Engineer",
     "Cloud Engineer",
-    "Platform Engineer",
     "Site Reliability Engineer",
-    "SRE",
-    "Infrastructure Engineer",
-    "Kubernetes Engineer",
-    "Terraform Engineer",
-    "Cloud DevOps Engineer",
-    "CI/CD Engineer",
-    "Release Engineer",
+    "Platform Engineer",
 ]
 
 LOCATIONS: List[str] = [
@@ -22,9 +13,6 @@ LOCATIONS: List[str] = [
     "Remote, India",
     "Mumbai, India",
     "Bengaluru, India",
-    "Hyderabad, India",
-    "Chennai, India",
-    "Delhi NCR, India",
 ]
 
 LOCATION_PRIORITY: Dict[str, int] = {
@@ -67,9 +55,6 @@ MAX_RETRIES: int = 3
 BACKOFF_BASE: float = 1.0
 
 ASHBY_BOARDS: List[str] = [
-    "anthropic",
-    "linear",
-    "raycast",
     "ashby",
 ]
 

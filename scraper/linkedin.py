@@ -17,17 +17,26 @@ GEO_IDS = {
     "Pune": "102333196",
     "Mumbai": "102333198",
     "Bengaluru": "102333199",
-    "Bangalore": "102333199",
     "Hyderabad": "102333200",
     "Chennai": "102333197",
-    "Delhi": "102333203",
+    "Delhi NCR": "102333203",
     "India": "102713980",
 }
+
+
+COOKIE_DOMAIN = ".linkedin.com"
 
 
 class LinkedInScraper(BaseScraper):
     def __init__(self):
         super().__init__("linkedin")
+        self._init_session()
+
+    def _init_session(self):
+        self.session.cookies.set("lang", "v=2&lang=en-us", domain=COOKIE_DOMAIN)
+        self.session.cookies.set("JSESSIONID", "ajax:123456789", domain=COOKIE_DOMAIN)
+        self.session.cookies.set("bcookie", '"v=2&abc123"', domain=COOKIE_DOMAIN)
+        self.session.headers["Accept-Encoding"] = "gzip, deflate"
 
     def scrape(self) -> List[JobDict]:
         jobs: List[JobDict] = []
@@ -36,17 +45,15 @@ class LinkedInScraper(BaseScraper):
         for keyword in SEARCH_KEYWORDS:
             for location in LOCATIONS:
                 loc_short = location.split(",")[0].strip()
-                geo = GEO_IDS.get(loc_short, GEO_IDS.get("India"))
-                jobs_found = self._search_keyword(keyword, geo, seen_ids)
-                jobs.extend(jobs_found)
-                time.sleep(random.uniform(1.0, 2.5))
+                geo = GEO_IDS.get(loc_short, "102713980")
+                found = self._search(keyword, geo, seen_ids)
+                jobs.extend(found)
+                time.sleep(random.uniform(0.5, 1.0))
 
         logger.info("LinkedIn: found %d jobs total", len(jobs))
         return jobs
 
-    def _search_keyword(
-        self, keyword: str, geo_id: str, seen_ids: set
-    ) -> List[JobDict]:
+    def _search(self, keyword: str, geo_id: str, seen_ids: set) -> List[JobDict]:
         found: List[JobDict] = []
         params = {
             "keywords": keyword,
@@ -63,98 +70,93 @@ class LinkedInScraper(BaseScraper):
         if resp is None:
             return found
 
-        job_ids = self._extract_job_ids(resp.text)
-        logger.info("LinkedIn: found %d job IDs for '%s'", len(job_ids), keyword)
-
-        for idx, job_id in enumerate(job_ids):
-            if job_id in seen_ids:
-                continue
-            seen_ids.add(job_id)
-            detail_url = (
-                f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
-            )
-            time.sleep(random.uniform(0.5, 1.5))
-            detail_resp = self.fetch(detail_url)
-            if detail_resp is None:
-                continue
-            job = self._parse_job_detail(detail_resp.text, keyword)
-            if job:
-                found.append(job)
-            if len(found) >= 25:
-                break
-
+        jobs_data = self._parse_search_results(resp.text, seen_ids)
+        found.extend(jobs_data)
+        logger.info(
+            "LinkedIn: found %d jobs for '%s' geo=%s", len(jobs_data), keyword, geo_id
+        )
         return found
 
-    def _extract_job_ids(self, html: str) -> List[str]:
+    def _parse_search_results(self, html: str, seen_ids: set) -> List[JobDict]:
+        found: List[JobDict] = []
         soup = BeautifulSoup(html, "lxml")
-        ids = set()
-        for link in soup.find_all("a", href=True):
-            m = re.search(r"/jobs/view/(\d+)", link["href"])
-            if m:
-                ids.add(m.group(1))
-        for div in soup.find_all("div", {"data-job-id": re.compile(r"\d+")}):
-            ids.add(div["data-job-id"])
-        for li in soup.find_all("li", {"data-entity-job-id": re.compile(r"\d+")}):
-            ids.add(li["data-entity-job-id"])
-        return list(ids)
 
-    def _parse_job_detail(self, html: str, keyword: str) -> Optional[JobDict]:
-        soup = BeautifulSoup(html, "lxml")
-        title_el = soup.find("h1") or soup.find(
-            class_=re.compile(r"top-card-layout__title", re.I)
-        )
-        title = title_el.get_text(strip=True) if title_el else ""
+        cards = soup.find_all(
+            "div", class_=re.compile(r"base-search-card", re.I)
+        ) or soup.find_all("li", class_=re.compile(r"job-search-card", re.I))
 
-        if not title or not self._matches_keywords(title):
-            return None
+        for card in cards:
+            try:
+                entity_urn = card.get("data-entity-urn", "") or card.get(
+                    "data-entity-job-id", ""
+                )
+                job_id = ""
+                m = re.search(r"jobPosting:(\d+)", str(entity_urn))
+                if m:
+                    job_id = m.group(1)
+                if not job_id:
+                    m = re.search(r"/jobs/view/(\d+)", str(card))
+                    if m:
+                        job_id = m.group(1)
+                if not job_id:
+                    continue
+                if job_id in seen_ids:
+                    continue
+                seen_ids.add(job_id)
 
-        company_el = (
-            soup.find(class_=re.compile(r"topcard__org-name-link", re.I))
-            or soup.find(class_=re.compile(r"top-card-layout__second-subline", re.I))
-            or soup.find(
-                "a", {"data-tracking-control-name": re.compile(r"public_jobs.*company")}
-            )
-        )
-        company = company_el.get_text(strip=True) if company_el else ""
+                title_el = card.find(
+                    "h3", class_=re.compile(r"base-search-card__title", re.I)
+                ) or card.find("a", class_=re.compile(r"base-card__full-link", re.I))
+                title = title_el.get_text(strip=True) if title_el else ""
 
-        loc_el = soup.find(
-            class_=re.compile(r"topcard__flavor--bullet", re.I)
-        ) or soup.find(class_=re.compile(r"top-card-layout__first-subline", re.I))
-        location = loc_el.get_text(strip=True) if loc_el else "India"
+                if not title or not self._matches_keywords(title):
+                    continue
 
-        desc_el = soup.find(class_=re.compile(r"description__text", re.I)) or soup.find(
-            class_=re.compile(r"show-more-less-html", re.I)
-        )
-        description = desc_el.get_text(strip=True)[:500] if desc_el else ""
+                subtitle_el = card.find(
+                    "h4", class_=re.compile(r"base-search-card__subtitle", re.I)
+                ) or card.find(
+                    "span", class_=re.compile(r"base-search-card__subtitle", re.I)
+                )
+                company = subtitle_el.get_text(strip=True) if subtitle_el else ""
 
-        posted_text = ""
-        posted_el = soup.find(class_=re.compile(r"posted-time-ago", re.I)) or soup.find(
-            class_=re.compile(r"topcard__flavor--metadata-posted", re.I)
-        )
-        if posted_el:
-            posted_text = posted_el.get_text(strip=True)
+                loc_el = card.find(
+                    "span", class_=re.compile(r"job-search-card__location", re.I)
+                ) or card.find(
+                    "span", class_=re.compile(r"base-search-card__metadata", re.I)
+                )
+                location = loc_el.get_text(strip=True) if loc_el else "India"
 
-        posted_date = self._parse_relative_date(posted_text)
+                apply_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
 
-        apply_url = ""
-        apply_el = soup.find("a", {"data-job-id": re.compile(r"\d+")}, href=True)
-        if apply_el:
-            apply_url = apply_el["href"]
-        if not apply_url:
-            apply_el = soup.find(
-                "a", class_=re.compile(r"apply-button", re.I), href=True
-            )
-            if apply_el:
-                apply_url = apply_el["href"]
+                time_el = card.find("time") or card.find(
+                    "span", class_=re.compile(r"listed-date", re.I)
+                )
+                posted_text = (
+                    time_el.get("datetime", "")
+                    if time_el and time_el.name == "time"
+                    else (time_el.get_text(strip=True) if time_el else "")
+                )
+                if posted_text and not re.search(r"\d", posted_text):
+                    posted_text = ""
+                posted = self._parse_relative_date(posted_text) if posted_text else None
 
-        return self.normalize(
-            title=title,
-            company=company,
-            location=location,
-            apply_url=apply_url,
-            posted_date=posted_date,
-            description=description,
-        )
+                desc_snippet = card.get_text(" ", strip=True)[:300]
+
+                found.append(
+                    self.normalize(
+                        title=title,
+                        company=company,
+                        location=location,
+                        apply_url=apply_url,
+                        posted_date=posted,
+                        description=desc_snippet,
+                    )
+                )
+            except Exception as e:
+                logger.warning("LinkedIn: error parsing card: %s", e)
+                continue
+
+        return found
 
     def _matches_keywords(self, title: str) -> bool:
         t = title.lower()
@@ -182,22 +184,12 @@ class LinkedInScraper(BaseScraper):
                 return now - timedelta(weeks=num)
             elif "month" in unit:
                 return now - timedelta(days=num * 30)
-        m = re.search(r"(\d+)\s*(minutes|hours|days|weeks|months)\s*ago", text)
-        if m:
-            num = int(m.group(1))
-            unit = m.group(2)
-            if "minute" in unit:
-                return now - timedelta(minutes=num)
-            elif "hour" in unit:
-                return now - timedelta(hours=num)
-            elif "day" in unit:
-                return now - timedelta(days=num)
-            elif "week" in unit:
-                return now - timedelta(weeks=num)
-            elif "month" in unit:
-                return now - timedelta(days=num * 30)
-        if "just posted" in text or "moments ago" in text or "recently" in text:
+        if "just posted" in text or "moments ago" in text:
             return now - timedelta(hours=1)
         if "today" in text:
             return now - timedelta(hours=6)
+        if "hours ago" in text or "hour ago" in text:
+            m = re.search(r"(\d+)", text)
+            if m:
+                return now - timedelta(hours=int(m.group(1)))
         return None

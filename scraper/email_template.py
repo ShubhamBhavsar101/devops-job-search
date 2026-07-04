@@ -65,7 +65,7 @@ def send_email(
 
     text_part = MIMEText(
         f"Daily DevOps Job Report - {date_str}\n\n"
-        f"Total jobs: {len([j for j in [1]])}\n\n"
+        f"Total jobs: {len(html_body.split('<tr>')) - html_body.count('<tr><th>')}\n\n"
         "Open this email in an HTML-compatible client to view the formatted report.\n",
         "plain",
         "utf-8",
