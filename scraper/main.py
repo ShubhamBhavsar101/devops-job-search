@@ -66,6 +66,23 @@ def main():
 
     logger.info("Total raw jobs collected: %d", len(all_jobs))
 
+    now = datetime.now(timezone.utc)
+    before = len(all_jobs)
+    all_jobs = [
+        j
+        for j in all_jobs
+        if j.get("posted_date") is None
+        or (now - j["posted_date"]).total_seconds() <= config.LOOKBACK_HOURS * 3600
+    ]
+    filtered = before - len(all_jobs)
+    if filtered:
+        logger.info(
+            "Freshness filter (%dh): removed %d older jobs, %d remaining",
+            config.LOOKBACK_HOURS,
+            filtered,
+            len(all_jobs),
+        )
+
     all_jobs = deduplicate(all_jobs)
     all_jobs = rank_jobs(all_jobs)
 

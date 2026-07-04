@@ -74,4 +74,4 @@ USER_AGENTS: List[str] = [
 ]
 
 MAX_JOBS_PER_SOURCE: int = 50
-LOOKBACK_HOURS: int = 24
+LOOKBACK_HOURS: int = int(os.environ.get("JOB_FRESHNESS_HOURS", "24"))
