@@ -44,11 +44,21 @@ class IndeedScraper(BaseScraper):
         params = {"q": keyword, "l": location, "fromage": days}
 
         try:
-            resp = self._curl_session.get(
-                "https://in.indeed.com/jobs",
-                params=params,
-                timeout=60,
-            )
+            target_url = "https://in.indeed.com/jobs"
+            if config.SCRAPERAPI_KEY:
+                from urllib.parse import urlencode
+                actual_url = target_url + "?" + urlencode(params)
+                resp = self._curl_session.get(
+                    "http://api.scraperapi.com",
+                    params={"api_key": config.SCRAPERAPI_KEY, "url": actual_url},
+                    timeout=60,
+                )
+            else:
+                resp = self._curl_session.get(
+                    target_url,
+                    params=params,
+                    timeout=60,
+                )
         except Exception as e:
             logger.warning(
                 "Indeed: request failed for '%s' in '%s': %s", keyword, location, e

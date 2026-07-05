@@ -90,6 +90,7 @@ SMTP_PORT: int = 587
 GMAIL_USERNAME: str = os.environ.get("GMAIL_USERNAME", "")
 GMAIL_APP_PASSWORD: str = os.environ.get("GMAIL_APP_PASSWORD", "")
 RECIPIENT_EMAIL: str = os.environ.get("RECIPIENT_EMAIL", "")
+SCRAPERAPI_KEY: str = os.environ.get("SCRAPERAPI_KEY", "")
 
 CSV_FILENAME: str = "devops_jobs_report_{date}.csv"
 
