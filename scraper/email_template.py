@@ -23,7 +23,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 SOURCE_LABELS = {
     "naukri": "Naukri",
     "linkedin": "LinkedIn",
-    "indeed": "Other Job Portals & Company Boards",
+    "indeed": "Indeed",
     "amazon": "Other Job Portals & Company Boards",
     "ashby": "Other Job Portals & Company Boards",
 }
@@ -59,6 +59,7 @@ def _group_by_source(jobs: List[JobDict]) -> OrderedDict:
         [
             ("Naukri", OrderedDict()),
             ("LinkedIn", OrderedDict()),
+            ("Indeed", OrderedDict()),
             ("Other Job Portals & Company Boards", OrderedDict()),
         ]
     )
