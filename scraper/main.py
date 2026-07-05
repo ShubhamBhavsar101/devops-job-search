@@ -12,6 +12,7 @@ from scraper.amazon import AmazonScraper
 from scraper.ashby import AshbyScraper
 from scraper.email_template import render_html_report, send_email
 from scraper.exporter import jobs_to_csv
+from scraper.indeed import IndeedScraper
 from scraper.linkedin import LinkedInScraper
 from scraper.naukri import NaukriScraper
 from scraper.ranking import deduplicate, rank_jobs
@@ -47,6 +48,7 @@ def main():
     today = datetime.now(timezone.utc).strftime("%B %d, %Y")
 
     scrapers = [
+        IndeedScraper(),
         AshbyScraper(),
         AmazonScraper(),
         NaukriScraper(),

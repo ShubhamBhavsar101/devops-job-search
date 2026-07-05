@@ -22,6 +22,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 SOURCE_LABELS = {
     "naukri": "Naukri",
     "linkedin": "LinkedIn",
+    "indeed": "Indeed",
     "amazon": "Individual Company Websites",
     "ashby": "Individual Company Websites",
 }
