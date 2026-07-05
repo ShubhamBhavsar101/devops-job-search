@@ -1,6 +1,9 @@
 name: Daily DevOps Job Search
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # 9:00 AM IST = 3:30 UTC (IST is UTC+5:30)
     - cron: '30 3 * * *'
