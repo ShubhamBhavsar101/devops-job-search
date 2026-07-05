@@ -46,6 +46,7 @@ class IndeedScraper(BaseScraper):
         try:
             target_url = "https://in.indeed.com/jobs"
             if config.SCRAPERAPI_KEY:
+                logger.info("Indeed: Using ScraperAPI proxy")
                 from urllib.parse import urlencode
                 actual_url = target_url + "?" + urlencode(params)
                 resp = self._curl_session.get(
@@ -54,6 +55,7 @@ class IndeedScraper(BaseScraper):
                     timeout=60,
                 )
             else:
+                logger.info("Indeed: Using direct connection (No ScraperAPI key found)")
                 resp = self._curl_session.get(
                     target_url,
                     params=params,
