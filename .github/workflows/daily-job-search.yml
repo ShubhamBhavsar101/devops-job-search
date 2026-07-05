@@ -56,6 +56,7 @@ jobs:
           GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
           JOB_FRESHNESS_DAYS: ${{ inputs.job_age_days || '1' }}
         run: |
           python scraper/main.py 2>&1 | tee job_search.log
