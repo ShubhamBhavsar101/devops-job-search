@@ -218,20 +218,22 @@
   }
   .tab-label {
     display: inline-block;
-    padding: 6px 14px;
-    margin: 2px 4px;
-    background-color: #f1f5f9;
-    color: #4f46e5;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 700;
+    padding: 8px 18px;
+    margin: 2px;
+    background-color: transparent;
+    color: #64748b;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    border: 1px solid #e2e8f0;
+    border: none;
     user-select: none;
     white-space: nowrap;
+    transition: all 0.2s ease;
   }
   .tab-label:hover {
-    background-color: #e2e8f0;
+    color: #4f46e5;
+    background-color: #f1f5f9;
   }
   .tab-content {
     display: block;
@@ -257,7 +259,7 @@
   #tab-other-job-portals-company-boards:checked ~ .tabs-nav-card .label-other-job-portals-company-boards {
     background-color: #4f46e5 !important;
     color: #ffffff !important;
-    border-color: #4338ca !important;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25) !important;
   }
 </style>
 </head>
@@ -297,16 +299,15 @@
   {% endfor %}
 
   <!-- Tabs Navigation Bar (Labels trigger Radio Inputs) -->
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="tabs-nav-card" style="margin-bottom: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); text-align: center;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="tabs-nav-card" style="margin-bottom: 28px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 50px; padding: 6px; text-align: center;">
     <tr>
-      <td align="center" style="font-size: 12px; font-weight: 700; color: #64748b; padding: 4px;">
-        <span class="nav-label-title" style="text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;">View Source:</span>
+      <td align="center" style="padding: 2px;">
         {% for source_name, city_groups in groups.items() %}
         {% set src_total = source_totals.get(source_name, 0) %}
         {% if src_total %}
         {% set tab_id = "tab-" + source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
         <label for="{{ tab_id }}" class="tab-label label-{{ source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower }}">
-          {{ source_name }} ({{ src_total }})
+          {{ source_name }} <span style="font-size: 11px; opacity: 0.7; margin-left: 2px; font-weight: 500;">({{ src_total }})</span>
         </label>
         {% endif %}
         {% endfor %}
