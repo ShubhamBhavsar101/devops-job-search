@@ -104,6 +104,7 @@ def main():
         html_body=html_body,
         csv_path=csv_path,
         date_str=today,
+        html_path=html_path,
     )
 
     logger.info("=" * 60)

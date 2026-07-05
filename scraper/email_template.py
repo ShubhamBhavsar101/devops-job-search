@@ -112,6 +112,7 @@ def send_email(
     recipient: str = "",
     username: str = "",
     password: str = "",
+    html_path: str = "",
 ) -> bool:
     recipient = recipient or config.RECIPIENT_EMAIL
     username = username or config.GMAIL_USERNAME
@@ -153,6 +154,18 @@ def send_email(
             filename=os.path.basename(csv_path),
         )
         msg.attach(attachment)
+
+    if html_path and os.path.exists(html_path):
+        with open(html_path, "rb") as f:
+            attachment_html = MIMEBase("text", "html")
+            attachment_html.set_payload(f.read())
+        encoders.encode_base64(attachment_html)
+        attachment_html.add_header(
+            "Content-Disposition",
+            "attachment",
+            filename=os.path.basename(html_path),
+        )
+        msg.attach(attachment_html)
 
     try:
         server = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT)
