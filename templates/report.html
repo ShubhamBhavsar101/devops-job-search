@@ -211,11 +211,6 @@
   }
   
   /* Interactive Email-Safe Tab Styling */
-  .tab-input {
-    display: none !important;
-    position: absolute;
-    opacity: 0;
-  }
   .tab-label {
     display: inline-block;
     padding: 8px 18px;
@@ -235,31 +230,17 @@
     color: #4f46e5;
     background-color: #f1f5f9;
   }
-  .tab-content {
-    display: block;
-  }
   
-  /* Hide tab content by default only if input selectors are present in the DOM */
-  .tab-input ~ .tab-content {
-    display: none;
-  }
-  
-  /* Show targeted content when checked */
-  #tab-naukri:checked ~ .content-naukri,
-  #tab-linkedin:checked ~ .content-linkedin,
-  #tab-indeed:checked ~ .content-indeed,
-  #tab-other-job-portals-company-boards:checked ~ .content-other-job-portals-company-boards {
-    display: block !important;
-  }
-  
-  /* Highlight the active label button */
-  #tab-naukri:checked ~ .tabs-nav-card .label-naukri,
-  #tab-linkedin:checked ~ .tabs-nav-card .label-linkedin,
-  #tab-indeed:checked ~ .tabs-nav-card .label-indeed,
-  #tab-other-job-portals-company-boards:checked ~ .tabs-nav-card .label-other-job-portals-company-boards {
+  /* active tab highlight style (applied via JS dynamically) */
+  .tab-label.active-tab {
     background-color: #4f46e5 !important;
     color: #ffffff !important;
     box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25) !important;
+  }
+  
+  /* Show all by default in email client layout */
+  .tab-content {
+    display: block;
   }
 </style>
 </head>
@@ -288,27 +269,17 @@
     </table>
   </div>
 
-  <!-- Hidden Radio Inputs for CSS Tab Toggle -->
-  {% set namespace = namespace(checked_done=false) %}
-  {% for source_name, city_groups in groups.items() %}
-  {% set src_total = source_totals.get(source_name, 0) %}
-  {% if src_total %}
-  {% set tab_id = "tab-" + source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
-  <input type="radio" id="{{ tab_id }}" name="job-tabs" class="tab-input" {% if not namespace.checked_done %}checked{% set namespace.checked_done = true %}{% endif %}>
-  {% endif %}
-  {% endfor %}
-
-  <!-- Tabs Navigation Bar (Labels trigger Radio Inputs) -->
+  <!-- Tabs Navigation Bar -->
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="tabs-nav-card" style="margin-bottom: 28px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 50px; padding: 6px; text-align: center;">
     <tr>
       <td align="center" style="padding: 2px;">
         {% for source_name, city_groups in groups.items() %}
         {% set src_total = source_totals.get(source_name, 0) %}
         {% if src_total %}
-        {% set tab_id = "tab-" + source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
-        <label for="{{ tab_id }}" class="tab-label label-{{ source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower }}">
+        {% set slug = source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
+        <span onclick="showTab('{{ slug }}')" class="tab-label label-{{ slug }}">
           {{ source_name }} <span style="font-size: 11px; opacity: 0.7; margin-left: 2px; font-weight: 500;">({{ src_total }})</span>
-        </label>
+        </span>
         {% endif %}
         {% endfor %}
       </td>
@@ -377,5 +348,44 @@
 
   <div class="footer">Generated automatically with love &bull; {{ date }}</div>
 </div>
+
+<script>
+function showTab(tabName) {
+  // Hide all tab contents
+  var contents = document.querySelectorAll('.tab-content');
+  for (var i = 0; i < contents.length; i++) {
+    contents[i].style.display = 'none';
+  }
+  
+  // Show selected content
+  var activeContent = document.querySelector('.content-' + tabName);
+  if (activeContent) {
+    activeContent.style.display = 'block';
+  }
+  
+  // Update active class on tab labels
+  var labels = document.querySelectorAll('.tab-label');
+  for (var i = 0; i < labels.length; i++) {
+    labels[i].className = labels[i].className.replace(' active-tab', '');
+  }
+  
+  var activeLabel = document.querySelector('.label-' + tabName);
+  if (activeLabel) {
+    activeLabel.className += ' active-tab';
+  }
+}
+
+// Initialize: Show first available tab
+document.addEventListener('DOMContentLoaded', function() {
+  var tabs = ['naukri', 'linkedin', 'indeed', 'other-job-portals-company-boards'];
+  for (var i = 0; i < tabs.length; i++) {
+    var content = document.querySelector('.content-' + tabs[i]);
+    if (content) {
+      showTab(tabs[i]);
+      break;
+    }
+  }
+});
+</script>
 </body>
 </html>
