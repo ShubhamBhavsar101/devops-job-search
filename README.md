@@ -32,7 +32,7 @@ The report replaces plain spreadsheets with a premium dashboard cards layout:
 
 ## ⚙️ Customization via Environment Variables
 
-No need to modify Python scripts to change search keywords or locations! Simply copy `.env.example` to `.env` or set the following environment variables:
+No need to modify Python scripts to change search keywords or locations! Set the following environment variables (locally or via GitHub Secrets):
 
 | Variable | Description | Default Example |
 |---|---|---|
@@ -80,13 +80,13 @@ Add variables like `SEARCH_KEYWORDS` and `LOCATIONS` to your **Actions Secrets**
    ```
 
 3. **Configure local environment variables**:
-   Create a `.env` file in the root folder:
-   ```env
-   GMAIL_USERNAME="your-email@gmail.com"
-   GMAIL_APP_PASSWORD="your-gmail-app-password"
-   RECIPIENT_EMAIL="destination-email@gmail.com"
-   SEARCH_KEYWORDS="DevOps, SRE, Cloud Engineer"
-   LOCATIONS="Pune, India, Remote, India"
+   Export the variables in your shell before running:
+   ```bash
+   export GMAIL_USERNAME="your-email@gmail.com"
+   export GMAIL_APP_PASSWORD="your-gmail-app-password"
+   export RECIPIENT_EMAIL="destination-email@gmail.com"
+   export SEARCH_KEYWORDS="DevOps, SRE, Cloud Engineer"
+   export LOCATIONS="Pune, India, Remote, India"
    ```
 
 4. **Run the script**:
