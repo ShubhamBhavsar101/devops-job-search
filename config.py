@@ -1,23 +1,38 @@
 import os
 from typing import Dict, List
+from dotenv import load_dotenv
 
-SEARCH_KEYWORDS: List[str] = [
-    "DevOps Engineer",
-    "Cloud Engineer",
-    "Site Reliability Engineer",
-    "Platform Engineer",
-    "Infrastructure Engineer",
-    "SRE",
-    "Kubernetes Engineer",
-    "DevSecOps Engineer",
-]
+load_dotenv()
 
-LOCATIONS: List[str] = [
-    "Pune, India",
-    "Remote, India",
-    "Mumbai, India",
-    "Bengaluru, India",
-]
+def _get_list_env(name: str, default: List[str]) -> List[str]:
+    val = os.environ.get(name)
+    if val:
+        return [item.strip() for item in val.split(",") if item.strip()]
+    return default
+
+SEARCH_KEYWORDS: List[str] = _get_list_env(
+    "SEARCH_KEYWORDS",
+    [
+        "DevOps Engineer",
+        "Cloud Engineer",
+        "Site Reliability Engineer",
+        "Platform Engineer",
+        "Infrastructure Engineer",
+        "SRE",
+        "Kubernetes Engineer",
+        "DevSecOps Engineer",
+    ]
+)
+
+LOCATIONS: List[str] = _get_list_env(
+    "LOCATIONS",
+    [
+        "Pune, India",
+        "Remote, India",
+        "Mumbai, India",
+        "Bengaluru, India",
+    ]
+)
 
 LOCATION_PRIORITY: Dict[str, int] = {
     "pune": 100,

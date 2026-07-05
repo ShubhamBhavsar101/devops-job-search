@@ -1,117 +1,103 @@
-# Daily DevOps Job Finder
+# 🚀 Daily DevOps Job Finder
 
-Automatically searches for DevOps, Cloud, SRE, Platform, and Infrastructure engineering jobs in India every morning and emails a well-formatted HTML report with a CSV attachment.
+Automatically searches for DevOps, SRE, Cloud, and Platform engineering jobs every morning, dedupes and scores listings by relevance, and emails a visually stunning HTML dashboard report card (complete with skill badges and location tags) alongside a raw CSV attachment.
 
-## How It Works
+---
 
-1. Runs daily at **9:00 AM IST** via GitHub Actions
-2. Searches 4 job sources for keywords matching DevOps roles
-3. Filters jobs posted within the last 24 hours
-4. Deduplicates identical listings across sources
-5. Ranks by location priority + keyword relevance
-6. Generates an HTML email report (Pune / Remote / Other sections)
-7. Attaches CSV with all job details
+## 🎨 HTML Email Visual Preview
 
-## Job Sources
+The report replaces plain spreadsheets with a premium dashboard cards layout:
+* **Metrics Header**: Highlights Total Jobs found, Naukri roles, LinkedIn roles, and others in a clean, single-row responsive table.
+* **Source Grouping**: Prioritizes Naukri and LinkedIn sections at the top, grouping other sources under a unified list.
+* **City Badges**: Color-coded badges instantly highlight target locations (e.g., **Pune** in green, **Remote** in blue, **Other** in grey).
+* **Skill Badges**: Extracted skills (e.g. `AWS`, `Kubernetes`, `Terraform`, `CI/CD`) appear as violet pills on each job card.
+* **White-label Apply Buttons**: High-contrast buttons align on the right for instant, one-click applications.
 
-| Source | Method | Reliability |
+---
+
+## 🛠️ Key Features
+
+* Concurrently crawls 5 job portals:
+  * **LinkedIn** (Guest search API)
+  * **Naukri** (Official RSA jobapi endpoint with auto-generated parameters)
+  * **Indeed** (Page parsing engine)
+  * **Ashby Boards** (Crawls boards of top companies like Anthropic, Linear, Raycast, Sentry, and Vercel)
+  * **Amazon Jobs API**
+* **Deduplication Engine**: Automatically filters out identical listings across sources.
+* **ATS-Style Scoring**: Ranks jobs based on location match and target skill keywords.
+* **Clutter Filter**: Drops jobs below a score threshold and filters out international restricted remote postings (e.g. US/EU only remote) that don't apply to India.
+* **Local Previews**: Automatically saves an HTML file of the email layout in the `output/` directory for checking visuals.
+
+---
+
+## ⚙️ Customization via Environment Variables
+
+No need to modify Python scripts to change search keywords or locations! Simply copy `.env.example` to `.env` or set the following environment variables:
+
+| Variable | Description | Default Example |
 |---|---|---|
-| **Amazon Jobs** | JSON API | ✅ Working |
-| **Ashby** (Anthropic, Linear, Raycast) | Public API | ✅ Working |
-| **Naukri** | HTML parsing | ⚠️ Best-effort (anti-bot) |
-| **LinkedIn** | Guest API | ⚠️ Best-effort (rate-limited) |
+| `SEARCH_KEYWORDS` | Comma-separated list of titles | `DevOps Engineer, SRE, Platform Engineer` |
+| `LOCATIONS` | Comma-separated list of target cities | `Pune, India, Remote, India, Bengaluru` |
+| `MIN_SCORE_THRESHOLD` | Discard jobs below this matching score | `50` |
+| `JOB_FRESHNESS_DAYS` | Lookback window for jobs | `1` |
 
-### About Naukri & LinkedIn
+---
 
-Naukri and LinkedIn employ aggressive anti-bot measures (CAPTCHAs, rate-limiting) that block server-side scrapers from GitHub Actions datacenter IPs. The scraper will attempt them every run and gracefully move on — they may produce results from residential IPs if run locally.
+## 🚀 Setup & Deployment
 
-## Search Keywords
+### 1. Fork and Configure GitHub Secrets
+Fork this repository, then head to **Settings → Secrets and variables → Actions → New repository secret** and configure:
 
-DevOps Engineer, AWS Engineer, AWS Cloud Engineer, Cloud Engineer, Platform Engineer, Site Reliability Engineer, SRE, Infrastructure Engineer, Kubernetes Engineer, Terraform Engineer, Cloud DevOps Engineer, CI/CD Engineer, Release Engineer.
-
-## Locations (prioritized)
-
-1. Pune (+100)
-2. Remote India (+80)
-3. Mumbai / Bengaluru / Hyderabad (+60)
-4. Chennai / Delhi NCR (+50)
-5. Anywhere in India (+20)
-
-Keyword bonuses: AWS, Kubernetes (+20), Terraform, Docker, CI/CD, GitHub Actions (+15), GitLab (+5), and more.
-
-## Setup
-
-### 1. Fork / Clone
-
-```bash
-git clone https://github.com/ShubhamBhavsar101/devops-job-search
-cd devops-job-search
-```
-
-### 2. Configure GitHub Secrets
-
-In your repository: **Settings → Secrets and variables → Actions → New repository secret**
-
-| Secret | Value |
+| Secret Name | Description |
 |---|---|
 | `GMAIL_USERNAME` | Your Gmail address (e.g., `you@gmail.com`) |
-| `GMAIL_APP_PASSWORD` | Gmail App Password (16 chars) |
-| `RECIPIENT_EMAIL` | Where to send the report |
+| `GMAIL_APP_PASSWORD` | 16-character Gmail App Password (see security settings) |
+| `RECIPIENT_EMAIL` | Destination email where report is sent |
 
-### 3. Generate Gmail App Password
+### 2. Custom Search Setup (Optional)
+Add variables like `SEARCH_KEYWORDS` and `LOCATIONS` to your **Actions Secrets** to customize searches when running serverless on GitHub Actions.
 
-1. Enable **2-Step Verification** at https://myaccount.google.com/security
-2. Go to https://myaccount.google.com/apppasswords
-3. Select **Mail** → **Other** → name it `devops-job-finder` → **Generate**
-4. Copy the 16-character password
+### 3. Automated Runs
+* The workflow runs automatically every morning at **9:30 AM IST** (3:30 AM UTC) via GitHub Actions schedule cron.
+* **Push to Main**: The scraper also triggers automatically whenever you push edits to the `main` branch.
+* **Manual Run**: Go to **Actions → Daily DevOps Job Search → Run workflow** to run it immediately.
 
-### 4. Manual Test Run
+---
 
-Go to **Actions → Daily DevOps Job Search → Run workflow** to trigger immediately.
+## 💻 Local Development
 
-## Local Development
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/devops-job-search
+   cd devops-job-search
+   ```
 
-```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-export GMAIL_USERNAME="your@gmail.com"
-export GMAIL_APP_PASSWORD="your-app-password"
-export RECIPIENT_EMAIL="you@example.com"
-python scraper/main.py
-```
+2. **Create a virtual environment & install requirements**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-## Output
+3. **Configure local environment variables**:
+   Create a `.env` file in the root folder:
+   ```env
+   GMAIL_USERNAME="your-email@gmail.com"
+   GMAIL_APP_PASSWORD="your-gmail-app-password"
+   RECIPIENT_EMAIL="destination-email@gmail.com"
+   SEARCH_KEYWORDS="DevOps, SRE, Cloud Engineer"
+   LOCATIONS="Pune, India, Remote, India"
+   ```
 
-- **Email**: HTML report with location-section tables + CSV attachment
-- **Artifacts**: CSV available in GitHub Actions run summary
+4. **Run the script**:
+   ```bash
+   python scraper/main.py
+   ```
+   *Note: This will output local previews in the `output/` directory.*
 
-## Project Structure
+---
 
-```
-├── .github/workflows/daily-job-search.yml
-├── scraper/
-│   ├── base.py              # Abstract base scraper (retry, timeout, normalize)
-│   ├── ashby.py             # Ashby public API
-│   ├── amazon.py            # Amazon Jobs JSON API
-│   ├── naukri.py            # Naukri (best-effort)
-│   ├── linkedin.py          # LinkedIn guest API (best-effort)
-│   ├── ranking.py           # Scoring + dedup algorithm
-│   ├── exporter.py          # CSV export
-│   ├── email_template.py    # HTML rendering + SMTP send
-│   └── main.py              # Orchestrator
-├── templates/report.html    # Jinja2 HTML email template
-├── config.py                # Central configuration
-├── requirements.txt
-└── README.md
-```
+## 📄 License
 
-## Adding New Sources
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-1. Create `scraper/mysource.py` with a class extending `BaseScraper`
-2. Implement `scrape()` returning `List[JobDict]`
-3. Add it to the list in `scraper/main.py`
-
-## License
-
-MIT
