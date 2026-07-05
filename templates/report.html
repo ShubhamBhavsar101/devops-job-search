@@ -42,10 +42,7 @@
     letter-spacing: 1px;
   }
   .stats-grid {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    text-align: center;
   }
   .stat-card {
     background: rgba(255, 255, 255, 0.12);
@@ -55,6 +52,9 @@
     text-align: center;
     min-width: 110px;
     backdrop-filter: blur(8px);
+    display: inline-block;
+    vertical-align: top;
+    margin: 6px;
   }
   .stat-card .num {
     font-size: 26px;
@@ -124,15 +124,7 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   }
-  .job-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .job-title-area {
-    flex: 1;
-  }
+  /* Layout containers styled as email-safe table structures */
   .job-title {
     font-size: 16px;
     font-weight: 700;
@@ -253,17 +245,19 @@
   
   {% for job in city_jobs %}
   <div class="job-card">
-    <div class="job-header">
-      <div class="job-title-area">
-        <h3 class="job-title">{{ job.title }}</h3>
-        <p class="job-company">{{ job.company }}</p>
-      </div>
-      <div>
-        {% if job.apply_url %}
-        <a href="{{ job.apply_url }}" target="_blank" class="apply-button">Apply Now</a>
-        {% endif %}
-      </div>
-    </div>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td valign="top" align="left">
+          <h3 class="job-title" style="margin: 0 0 4px 0;">{{ job.title }}</h3>
+          <p class="job-company" style="margin: 0 0 8px 0;">{{ job.company }}</p>
+        </td>
+        <td valign="middle" align="right" width="120" style="padding-left: 12px;">
+          {% if job.apply_url %}
+          <a href="{{ job.apply_url }}" target="_blank" class="apply-button">Apply Now</a>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
     
     <div class="badge-row">
       <span class="badge-pill {% if city == 'Pune' %}badge-pune{% elif city == 'Remote' %}badge-remote{% else %}badge-other{% endif %}">
