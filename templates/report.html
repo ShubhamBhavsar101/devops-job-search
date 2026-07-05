@@ -48,26 +48,23 @@
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    padding: 14px 20px;
+    padding: 10px 4px;
     text-align: center;
-    min-width: 110px;
     backdrop-filter: blur(8px);
-    display: inline-block;
-    vertical-align: top;
-    margin: 6px;
+    box-sizing: border-box;
   }
   .stat-card .num {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     display: block;
     line-height: 1.2;
   }
   .stat-card .label {
-    font-size: 10px;
-    opacity: 0.9;
+    font-size: 9px;
+    opacity: 0.95;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-weight: 700;
   }
   
   .section-title {
@@ -219,12 +216,24 @@
   <div class="header">
     <h1>Daily DevOps Job Finder</h1>
     <div class="date">{{ date }}</div>
-    <div class="stats-grid">
-      <div class="stat-card"><span class="num">{{ total_jobs }}</span><span class="label">Total Jobs</span></div>
-      {% for label, count in source_stats.items() %}
-      <div class="stat-card"><span class="num">{{ count }}</span><span class="label">{{ label }}</span></div>
-      {% endfor %}
-    </div>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 16px;">
+      <tr>
+        <td width="{{ (100 / (1 + source_stats|length))|round(1) }}%" align="center" style="padding: 4px; box-sizing: border-box;">
+          <div class="stat-card">
+            <span class="num">{{ total_jobs }}</span>
+            <span class="label">Total Jobs</span>
+          </div>
+        </td>
+        {% for label, count in source_stats.items() %}
+        <td width="{{ (100 / (1 + source_stats|length))|round(1) }}%" align="center" style="padding: 4px; box-sizing: border-box;">
+          <div class="stat-card">
+            <span class="num">{{ count }}</span>
+            <span class="label">{% if "Other" in label %}Others{% else %}{{ label }}{% endif %}</span>
+          </div>
+        </td>
+        {% endfor %}
+      </tr>
+    </table>
   </div>
 
   {% for source_name, city_groups in groups.items() %}
@@ -253,7 +262,7 @@
         </td>
         <td valign="middle" align="right" width="120" style="padding-left: 12px;">
           {% if job.apply_url %}
-          <a href="{{ job.apply_url }}" target="_blank" class="apply-button">Apply Now</a>
+          <a href="{{ job.apply_url }}" target="_blank" class="apply-button" style="color: #ffffff !important; text-decoration: none;">Apply Now</a>
           {% endif %}
         </td>
       </tr>
