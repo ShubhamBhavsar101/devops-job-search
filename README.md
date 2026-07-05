@@ -6,6 +6,8 @@ Automatically searches for DevOps, SRE, Cloud, and Platform engineering jobs eve
 
 ## 🎨 HTML Email Visual Preview
 
+![HTML Email Report Dashboard Card Layout](assets/report_preview.png)
+
 The report replaces plain spreadsheets with a premium dashboard cards layout:
 * **Metrics Header**: Highlights Total Jobs found, Naukri roles, LinkedIn roles, and others in a clean, single-row responsive table.
 * **Source Grouping**: Prioritizes Naukri and LinkedIn sections at the top, grouping other sources under a unified list.
