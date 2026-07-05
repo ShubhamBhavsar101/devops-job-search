@@ -5,43 +5,232 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily DevOps Job Report</title>
 <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f4f6f9;margin:0;padding:0;color:#1a1a2e}
-  .container{max-width:800px;margin:0 auto;padding:24px 16px}
-  .header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:32px 24px;border-radius:12px;margin-bottom:24px;text-align:center}
-  .header h1{margin:0 0 8px;font-size:28px;font-weight:700}
-  .header .date{font-size:14px;opacity:0.9;margin-bottom:16px}
-  .stats{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}
-  .stat{background:rgba(255,255,255,0.15);border-radius:8px;padding:12px 20px;text-align:center;min-width:100px}
-  .stat .num{font-size:24px;font-weight:700;display:block}
-  .stat .label{font-size:12px;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px}
-  .source-section{background:#fff;border-radius:10px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);overflow:hidden}
-  .source-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:16px 20px;font-size:16px;font-weight:600}
-  .source-header .total{font-size:13px;font-weight:400;opacity:0.85}
-  .city-group{padding:12px 20px 4px}
-  .city-group:not(:last-child){border-bottom:1px solid #edf2f7}
-  .city-title{font-size:14px;font-weight:600;color:#4a5568;margin:0 0 8px}
-  .city-title .count{font-size:12px;font-weight:400;color:#a0aec0}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{text-align:left;padding:8px;border-bottom:2px solid #e2e8f0;font-weight:600;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:0.3px}
-  td{padding:8px;border-bottom:1px solid #edf2f7;vertical-align:middle}
-  tr:last-child td{border-bottom:none}
-  .company{font-weight:600;color:#2d3748}
-  .role{color:#4a5568}
-  .posted{color:#718096;font-size:12px;white-space:nowrap}
-  .apply-btn{display:inline-block;background:#667eea;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;white-space:nowrap}
-  .empty{color:#a0aec0;font-style:italic;padding:12px 0;font-size:13px}
-  .footer{text-align:center;color:#a0aec0;font-size:12px;padding:16px}
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8fafc;
+    margin: 0;
+    padding: 0;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  .header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #ffffff;
+    padding: 40px 32px;
+    border-radius: 16px;
+    margin-bottom: 28px;
+    text-align: center;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.15), 0 4px 6px -4px rgba(79, 70, 229, 0.15);
+  }
+  .header h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .header .date {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-bottom: 24px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .stats-grid {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    min-width: 110px;
+    backdrop-filter: blur(8px);
+  }
+  .stat-card .num {
+    font-size: 26px;
+    font-weight: 800;
+    display: block;
+    line-height: 1.2;
+  }
+  .stat-card .label {
+    font-size: 10px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+  
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title .badge {
+    font-size: 12px;
+    background-color: #e2e8f0;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+
+  .city-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .city-marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .marker-pune { background-color: #10b981; }
+  .marker-remote { background-color: #3b82f6; }
+  .marker-other { background-color: #94a3b8; }
+
+  .job-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+  .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .job-title-area {
+    flex: 1;
+  }
+  .job-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+  }
+  .job-company {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0 0 8px 0;
+  }
+  
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .badge-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .badge-pune {
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #d1fae5;
+  }
+  .badge-remote {
+    background-color: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #dbeafe;
+  }
+  .badge-other {
+    background-color: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  .skill-pill {
+    background-color: #f5f3ff;
+    color: #5b21b6;
+    border: 1px solid #ede9fe;
+  }
+  
+  .apply-button {
+    display: inline-block;
+    background-color: #4f46e5;
+    color: #ffffff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    border: 1px solid #4338ca;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.05);
+    white-space: nowrap;
+  }
+  .apply-button:hover {
+    background-color: #4338ca;
+  }
+  
+  .job-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #f1f5f9;
+  }
+  .job-date {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  
+  .footer {
+    text-align: center;
+    padding: 32px 0 16px;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>Daily DevOps Job Report</h1>
+    <h1>Daily DevOps Job Finder</h1>
     <div class="date">{{ date }}</div>
-    <div class="stats">
-      <div class="stat"><span class="num">{{ total_jobs }}</span><span class="label">Total Jobs</span></div>
+    <div class="stats-grid">
+      <div class="stat-card"><span class="num">{{ total_jobs }}</span><span class="label">Total Jobs</span></div>
       {% for label, count in source_stats.items() %}
-      <div class="stat"><span class="num">{{ count }}</span><span class="label">{{ label }}</span></div>
+      <div class="stat-card"><span class="num">{{ count }}</span><span class="label">{{ label }}</span></div>
       {% endfor %}
     </div>
   </div>
@@ -49,34 +238,60 @@
   {% for source_name, city_groups in groups.items() %}
   {% set src_total = source_totals.get(source_name, 0) %}
   {% if src_total %}
-  <div class="source-section">
-    <div class="source-header">{{ source_name }} <span class="total">({{ src_total }})</span></div>
-    {% for city in CITY_ORDER %}
-    {% set city_jobs = city_groups.get(city) %}
-    {% if city_jobs %}
-    <div class="city-group">
-      <div class="city-title">{{ city }} <span class="count">({{ city_jobs|length }})</span></div>
-      <table>
-        <thead><tr><th>Company</th><th>Role</th><th>Posted</th><th>Apply</th></tr></thead>
-        <tbody>
-          {% for job in city_jobs %}
-          <tr>
-            <td class="company">{{ job.company }}</td>
-            <td class="role">{{ job.title }}</td>
-            <td class="posted">{% if job.posted_date %}{{ job.posted_date.strftime('%b %d') }}{% else %}—{% endif %}</td>
-            <td>{% if job.apply_url %}<a href="{{ job.apply_url }}" target="_blank" class="apply-btn">Apply Now</a>{% else %}—{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endif %}
-    {% endfor %}
+  <div class="section-title">
+    <span>{{ source_name }}</span>
+    <span class="badge">{{ src_total }} Roles</span>
   </div>
+  
+  {% for city in CITY_ORDER %}
+  {% set city_jobs = city_groups.get(city) %}
+  {% if city_jobs %}
+  <div class="city-header">
+    <span class="city-marker {% if city == 'Pune' %}marker-pune{% elif city == 'Remote' %}marker-remote{% else %}marker-other{% endif %}"></span>
+    <span>{{ city }} ({{ city_jobs|length }})</span>
+  </div>
+  
+  {% for job in city_jobs %}
+  <div class="job-card">
+    <div class="job-header">
+      <div class="job-title-area">
+        <h3 class="job-title">{{ job.title }}</h3>
+        <p class="job-company">{{ job.company }}</p>
+      </div>
+      <div>
+        {% if job.apply_url %}
+        <a href="{{ job.apply_url }}" target="_blank" class="apply-button">Apply Now</a>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div class="badge-row">
+      <span class="badge-pill {% if city == 'Pune' %}badge-pune{% elif city == 'Remote' %}badge-remote{% else %}badge-other{% endif %}">
+        {{ job.location }}
+      </span>
+      {% for skill in job.matched_skills %}
+      <span class="badge-pill skill-pill">{{ skill }}</span>
+      {% endfor %}
+    </div>
+    
+    <div class="job-footer">
+      <span class="job-date">
+        {% if job.posted_date %}
+        Posted {{ job.posted_date.strftime('%b %d') }}
+        {% else %}
+        Recently Posted
+        {% endif %}
+      </span>
+    </div>
+  </div>
+  {% endfor %}
+  
+  {% endif %}
+  {% endfor %}
   {% endif %}
   {% endfor %}
 
-  <div class="footer">Generated by Daily DevOps Job Finder &mdash; {{ date }}</div>
+  <div class="footer">Generated automatically with love &bull; {{ date }}</div>
 </div>
 </body>
 </html>

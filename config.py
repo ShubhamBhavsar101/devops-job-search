@@ -6,6 +6,10 @@ SEARCH_KEYWORDS: List[str] = [
     "Cloud Engineer",
     "Site Reliability Engineer",
     "Platform Engineer",
+    "Infrastructure Engineer",
+    "SRE",
+    "Kubernetes Engineer",
+    "DevSecOps Engineer",
 ]
 
 LOCATIONS: List[str] = [
@@ -56,6 +60,13 @@ BACKOFF_BASE: float = 1.0
 
 ASHBY_BOARDS: List[str] = [
     "ashby",
+    "anthropic",
+    "linear",
+    "raycast",
+    "sentry",
+    "fly-io",
+    "vercel",
+    "dbt-labs"
 ]
 
 SMTP_HOST: str = "smtp.gmail.com"
@@ -82,3 +93,10 @@ elif _FRESHNESS_HOURS:
     LOOKBACK_HOURS: int = int(_FRESHNESS_HOURS)
 else:
     LOOKBACK_HOURS: int = 24
+
+# New config options to reduce crowding
+MIN_SCORE_THRESHOLD: int = 50
+EXCLUDED_LOCATION_KEYWORDS: List[str] = [
+    "us only", "usa only", "europe", "eu only", "united kingdom", " uk ", "canada", "germany", "emea", "latam", "restricted"
+]
+

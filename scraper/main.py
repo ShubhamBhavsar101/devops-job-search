@@ -73,6 +73,16 @@ def main():
 
     logger.info("Jobs after dedup + ranking: %d", len(all_jobs))
 
+    # Filter out jobs below the minimum score threshold
+    pre_filter_count = len(all_jobs)
+    all_jobs = [j for j in all_jobs if j.get("score", 0) >= config.MIN_SCORE_THRESHOLD]
+    logger.info(
+        "Jobs after score filtering (threshold >= %d): %d (filtered out %d low-relevance jobs)",
+        config.MIN_SCORE_THRESHOLD,
+        len(all_jobs),
+        pre_filter_count - len(all_jobs)
+    )
+
     output_dir = os.path.join(os.path.dirname(__file__), "..", "output")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -80,6 +90,15 @@ def main():
     jobs_to_csv(all_jobs, csv_path)
 
     html_body = render_html_report(all_jobs, today)
+
+    # Save an HTML preview file for easy local viewing
+    html_path = os.path.join(output_dir, f"devops_jobs_report_{date_str}.html")
+    try:
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_body)
+        logger.info("HTML preview saved to %s", html_path)
+    except Exception as e:
+        logger.error("Failed to save HTML preview: %s", e)
 
     email_sent = send_email(
         html_body=html_body,
@@ -89,9 +108,10 @@ def main():
 
     logger.info("=" * 60)
     logger.info(
-        "Summary: %d jobs | CSV: %s | Email sent: %s",
+        "Summary: %d jobs | CSV: %s | HTML: %s | Email sent: %s",
         len(all_jobs),
         csv_path,
+        html_path,
         email_sent,
     )
     logger.info("=" * 60)

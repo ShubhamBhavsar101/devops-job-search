@@ -1,6 +1,7 @@
 import logging
 import smtplib
 import os
+import re
 from collections import OrderedDict
 from datetime import datetime
 from email.mime.base import MIMEBase
@@ -22,9 +23,9 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 SOURCE_LABELS = {
     "naukri": "Naukri",
     "linkedin": "LinkedIn",
-    "indeed": "Indeed",
-    "amazon": "Individual Company Websites",
-    "ashby": "Individual Company Websites",
+    "indeed": "Other Job Portals & Company Boards",
+    "amazon": "Other Job Portals & Company Boards",
+    "ashby": "Other Job Portals & Company Boards",
 }
 
 
@@ -37,20 +38,35 @@ def _city_bucket(location: str) -> str:
     return "Other"
 
 
+def _extract_matched_skills(job: JobDict) -> List[str]:
+    title_lower = job.get("title", "").lower()
+    desc_lower = job.get("description", "").lower()
+    text = f"{title_lower} {desc_lower}"
+
+    matched = []
+    for kw in config.KEYWORD_BONUS.keys():
+        # Match as word boundaries to prevent matching "aws" inside "laws"
+        pattern = r"\b" + re.escape(kw) + r"\b"
+        if re.search(pattern, text):
+            # Format nicely
+            formatted = kw.upper() if kw in ("aws", "ci/cd", "k8s", "ecs", "eks") else kw.title()
+            matched.append(formatted)
+    return sorted(list(set(matched)))
+
+
 def _group_by_source(jobs: List[JobDict]) -> OrderedDict:
     groups = OrderedDict(
         [
             ("Naukri", OrderedDict()),
             ("LinkedIn", OrderedDict()),
-            ("Individual Company Websites", OrderedDict()),
+            ("Other Job Portals & Company Boards", OrderedDict()),
         ]
     )
     for job in jobs:
-        source_label = SOURCE_LABELS.get(job.get("source", ""), "Other")
+        source_label = SOURCE_LABELS.get(job.get("source", "").lower(), "Other Job Portals & Company Boards")
         if source_label not in groups:
             groups[source_label] = OrderedDict()
         city = _city_bucket(job.get("location", ""))
-        city_order = ["Pune", "Remote", "Other"]
         if city not in groups[source_label]:
             groups[source_label][city] = []
         groups[source_label][city].append(job)
@@ -58,6 +74,10 @@ def _group_by_source(jobs: List[JobDict]) -> OrderedDict:
 
 
 def render_html_report(jobs: List[JobDict], date_str: str) -> str:
+    # Inject matched skills into each job
+    for job in jobs:
+        job["matched_skills"] = _extract_matched_skills(job)
+
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template("report.html")
     groups = _group_by_source(jobs)

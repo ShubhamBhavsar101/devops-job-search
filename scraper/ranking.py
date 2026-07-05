@@ -2,7 +2,7 @@ import hashlib
 import logging
 from typing import List
 
-from config import KEYWORD_BONUS, LOCATION_PRIORITY
+from config import KEYWORD_BONUS, LOCATION_PRIORITY, EXCLUDED_LOCATION_KEYWORDS
 from scraper.base import JobDict
 
 logger = logging.getLogger(__name__)
@@ -14,6 +14,19 @@ def calculate_score(job: JobDict) -> int:
     location_lower = job.get("location", "").lower()
     description_lower = job.get("description", "").lower()
     text = f"{title_lower} {description_lower}"
+
+    # Verify if location contains any international restricted remote keywords
+    # but allow it if it also explicitly mentions India
+    has_excluded = False
+    for ex_key in EXCLUDED_LOCATION_KEYWORDS:
+        if ex_key in location_lower:
+            if "india" not in location_lower:
+                has_excluded = True
+                break
+
+    if has_excluded:
+        job["score"] = -100
+        return -100
 
     for loc_key, points in LOCATION_PRIORITY.items():
         if loc_key in location_lower:
