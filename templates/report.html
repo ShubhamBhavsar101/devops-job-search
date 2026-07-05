@@ -209,8 +209,55 @@
     color: #94a3b8;
     font-weight: 500;
   }
-  .nav-tab-button:hover {
-    background-color: #e2e8f0 !important;
+  
+  /* Interactive Email-Safe Tab Styling */
+  .tab-input {
+    display: none !important;
+    position: absolute;
+    opacity: 0;
+  }
+  .tab-label {
+    display: inline-block;
+    padding: 6px 14px;
+    margin: 2px 4px;
+    background-color: #f1f5f9;
+    color: #4f46e5;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .tab-label:hover {
+    background-color: #e2e8f0;
+  }
+  .tab-content {
+    display: block;
+  }
+  
+  /* Hide tab content by default only if input selectors are present in the DOM */
+  .tab-input ~ .tab-content {
+    display: none;
+  }
+  
+  /* Show targeted content when checked */
+  #tab-naukri:checked ~ .content-naukri,
+  #tab-linkedin:checked ~ .content-linkedin,
+  #tab-indeed:checked ~ .content-indeed,
+  #tab-other-job-portals-company-boards:checked ~ .content-other-job-portals-company-boards {
+    display: block !important;
+  }
+  
+  /* Highlight the active label button */
+  #tab-naukri:checked ~ .tabs-nav-card .label-naukri,
+  #tab-linkedin:checked ~ .tabs-nav-card .label-linkedin,
+  #tab-indeed:checked ~ .tabs-nav-card .label-indeed,
+  #tab-other-job-portals-company-boards:checked ~ .tabs-nav-card .label-other-job-portals-company-boards {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border-color: #4338ca !important;
   }
 </style>
 </head>
@@ -239,16 +286,28 @@
     </table>
   </div>
 
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); text-align: center;">
+  <!-- Hidden Radio Inputs for CSS Tab Toggle -->
+  {% set namespace = namespace(checked_done=false) %}
+  {% for source_name, city_groups in groups.items() %}
+  {% set src_total = source_totals.get(source_name, 0) %}
+  {% if src_total %}
+  {% set tab_id = "tab-" + source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
+  <input type="radio" id="{{ tab_id }}" name="job-tabs" class="tab-input" {% if not namespace.checked_done %}checked{% set namespace.checked_done = true %}{% endif %}>
+  {% endif %}
+  {% endfor %}
+
+  <!-- Tabs Navigation Bar (Labels trigger Radio Inputs) -->
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="tabs-nav-card" style="margin-bottom: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); text-align: center;">
     <tr>
       <td align="center" style="font-size: 12px; font-weight: 700; color: #64748b; padding: 4px;">
-        <span style="text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;">Quick Jump:</span>
+        <span class="nav-label-title" style="text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;">View Source:</span>
         {% for source_name, city_groups in groups.items() %}
         {% set src_total = source_totals.get(source_name, 0) %}
         {% if src_total %}
-        <a href="#sec-{{ source_name|replace(' ', '-')|replace('&', '')|lower }}" class="nav-tab-button" style="display: inline-block; padding: 6px 14px; margin: 2px 4px; background-color: #f1f5f9; color: #4f46e5 !important; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; border: 1px solid #e2e8f0; white-space: nowrap;">
+        {% set tab_id = "tab-" + source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower %}
+        <label for="{{ tab_id }}" class="tab-label label-{{ source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower }}">
           {{ source_name }} ({{ src_total }})
-        </a>
+        </label>
         {% endif %}
         {% endfor %}
       </td>
@@ -258,10 +317,11 @@
   {% for source_name, city_groups in groups.items() %}
   {% set src_total = source_totals.get(source_name, 0) %}
   {% if src_total %}
-  <div class="section-title" id="sec-{{ source_name|replace(' ', '-')|replace('&', '')|lower }}" style="scroll-margin-top: 24px;">
-    <span>{{ source_name }}</span>
-    <span class="badge">{{ src_total }} Roles</span>
-  </div>
+  <div class="tab-content content-{{ source_name|replace(' ', '-')|replace('&', '')|replace('--', '-')|lower }}">
+    <div class="section-title">
+      <span>{{ source_name }}</span>
+      <span class="badge">{{ src_total }} Roles</span>
+    </div>
   
   {% for city in CITY_ORDER %}
   {% set city_jobs = city_groups.get(city) %}
@@ -310,8 +370,6 @@
   
   {% endif %}
   {% endfor %}
-  <div style="text-align: right; margin: 12px 0 24px;">
-    <a href="#top" style="font-size: 11px; font-weight: 700; color: #94a3b8 !important; text-decoration: none;">▲ Back to Top</a>
   </div>
   {% endif %}
   {% endfor %}
