@@ -5,8 +5,8 @@ on:
     branches:
       - main
   schedule:
-    # 9:00 AM IST = 3:30 UTC (IST is UTC+5:30)
-    - cron: '55 10 * * *'
+    # 9:00 AM IST 
+    - cron: '30 8 * * *'
   workflow_dispatch:
     inputs:
       job_age_days:
