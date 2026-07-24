@@ -114,4 +114,7 @@ MIN_SCORE_THRESHOLD: int = 50
 EXCLUDED_LOCATION_KEYWORDS: List[str] = [
     "us only", "usa only", "europe", "eu only", "united kingdom", " uk ", "canada", "germany", "emea", "latam", "restricted"
 ]
+EXCLUDED_TITLE_KEYWORDS: List[str] = [
+    "azure", "gcp", "google cloud"
+]
 
