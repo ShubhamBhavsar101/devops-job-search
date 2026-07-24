@@ -20,6 +20,8 @@ SEARCH_KEYWORDS: List[str] = _get_list_env(
         "SRE",
         "Kubernetes Engineer",
         "DevSecOps Engineer",
+        "Cloud DevOps Engineer",
+        "DevOps Architect",
     ]
 )
 
